@@ -1,0 +1,250 @@
+import streamlit as st
+import pandas as pd
+import plotly.express as px
+from sqlalchemy import create_engine, text
+from urllib.parse import quote_plus
+
+from app.components.theme import apply_enterprise_theme
+from app.components.sidebar import render_global_sidebar
+from app.components.header import render_global_header
+from app.components.kpi_card import render_kpi_card
+from app.components.filter_bar import render_filter_bar
+from app.components.ai_assistant import render_ai_assistant
+from app.components.charts import apply_chart_theme
+
+# ============================================================
+# PAGE CONFIG
+# ============================================================
+
+st.set_page_config(
+    page_title="LinkedIn Ads Performance",
+    page_icon="💼",
+    layout="wide"
+)
+
+apply_enterprise_theme()
+render_global_sidebar()
+
+# ============================================================
+# DATABASE CONNECTION
+# ============================================================
+
+DB_USER = "postgres"
+DB_HOST = "127.0.0.1"
+DB_PORT = "5432"
+DB_NAME = "marketing_dashboard"
+DB_PASSWORD = st.secrets.get("DB_PASSWORD", "")
+
+@st.cache_resource
+def get_engine():
+    if not DB_PASSWORD:
+        return None
+    url = f"postgresql+psycopg2://{DB_USER}:{quote_plus(DB_PASSWORD)}@{DB_HOST}:{DB_PORT}/{DB_NAME}"
+    return create_engine(url)
+
+engine = get_engine()
+
+render_global_header(
+    title="LinkedIn B2B Ads Intelligence",
+    description="B2B lead generation campaigns, sponsored content, member engagement and account-based marketing returns",
+    icon="💼",
+    engine=engine
+)
+
+if not engine:
+    st.error("Database connection unavailable.")
+    st.stop()
+
+# ============================================================
+# LOAD DATA
+# ============================================================
+
+@st.cache_data(ttl=300)
+def load_linkedin_ads():
+    query = """
+        SELECT
+            date,
+            campaign_id,
+            platform,
+            campaign_name,
+            objective,
+            spend,
+            impressions,
+            reach,
+            clicks,
+            leads,
+            conversions,
+            conversion_value
+        FROM paid_media_daily
+        WHERE platform = 'LinkedIn Ads'
+        ORDER BY date
+    """
+    with engine.connect() as conn:
+        df = pd.read_sql(text(query), conn)
+    df["date"] = pd.to_datetime(df["date"])
+    return df
+
+try:
+    li_df = load_linkedin_ads()
+except Exception as e:
+    st.error(f"Error loading LinkedIn Ads: {str(e)}")
+    st.stop()
+
+min_date = li_df["date"].min().date()
+max_date = li_df["date"].max().date()
+campaigns = sorted(li_df["campaign_name"].dropna().unique().tolist())
+objectives = sorted(li_df["objective"].dropna().unique().tolist())
+
+# ============================================================
+# FILTER BAR
+# ============================================================
+
+filters = render_filter_bar(
+    min_date=min_date,
+    max_date=max_date,
+    campaign_options=campaigns,
+    objective_options=objectives,
+    key_prefix="linkedin"
+)
+
+curr_df = li_df[
+    (li_df["date"] >= filters["start_date"])
+    & (li_df["date"] <= filters["end_date"])
+]
+if filters["selected_campaigns"]:
+    curr_df = curr_df[curr_df["campaign_name"].isin(filters["selected_campaigns"])]
+if filters["selected_objectives"]:
+    curr_df = curr_df[curr_df["objective"].isin(filters["selected_objectives"])]
+
+prev_df = li_df[
+    (li_df["date"] >= filters["comp_start"])
+    & (li_df["date"] <= filters["comp_end"])
+]
+if filters["selected_campaigns"]:
+    prev_df = prev_df[prev_df["campaign_name"].isin(filters["selected_campaigns"])]
+if filters["selected_objectives"]:
+    prev_df = prev_df[prev_df["objective"].isin(filters["selected_objectives"])]
+
+if curr_df.empty:
+    st.warning("No LinkedIn Ads data available for selected filters.")
+    st.stop()
+
+# ============================================================
+# METRICS & KPI CARDS
+# ============================================================
+
+curr_spend = curr_df["spend"].sum()
+prev_spend = prev_df["spend"].sum() if not prev_df.empty else 0.0
+
+curr_rev = curr_df["conversion_value"].sum()
+prev_rev = prev_df["conversion_value"].sum() if not prev_df.empty else 0.0
+
+curr_leads = curr_df["leads"].sum()
+prev_leads = prev_df["leads"].sum() if not prev_df.empty else 0.0
+
+curr_conv = curr_df["conversions"].sum()
+prev_conv = prev_df["conversions"].sum() if not prev_df.empty else 0.0
+
+curr_cpl = (curr_spend / curr_leads) if curr_leads > 0 else 0.0
+prev_cpl = (prev_spend / prev_leads) if prev_leads > 0 else 0.0
+
+curr_roas = (curr_rev / curr_spend) if curr_spend > 0 else 0.0
+prev_roas = (prev_rev / prev_spend) if prev_spend > 0 else 0.0
+
+currency_sym = st.session_state.get("currency_symbol", "$")
+comp_lbl = filters["comp_label"]
+is_inc = filters["is_incomplete"]
+
+st.subheader("LinkedIn Ads Key Performance Indicators")
+
+row1_cols = st.columns(3)
+with row1_cols[0]:
+    render_kpi_card("Spend", curr_spend, prev_spend, fmt_type="currency", higher_is_better=False, currency_symbol=currency_sym, comparison_label=comp_lbl, incomplete=is_inc)
+with row1_cols[1]:
+    render_kpi_card("Revenue", curr_rev, prev_rev, fmt_type="currency", higher_is_better=True, currency_symbol=currency_sym, comparison_label=comp_lbl, incomplete=is_inc)
+with row1_cols[2]:
+    render_kpi_card("Leads", curr_leads, prev_leads, fmt_type="integer", higher_is_better=True, currency_symbol=currency_sym, comparison_label=comp_lbl, incomplete=is_inc)
+
+row2_cols = st.columns(3)
+with row2_cols[0]:
+    render_kpi_card("Conversions", curr_conv, prev_conv, fmt_type="integer", higher_is_better=True, currency_symbol=currency_sym, comparison_label=comp_lbl, incomplete=is_inc)
+with row2_cols[1]:
+    render_kpi_card("CPL", curr_cpl, prev_cpl, fmt_type="currency_precise", higher_is_better=False, currency_symbol=currency_sym, comparison_label=comp_lbl, incomplete=is_inc)
+with row2_cols[2]:
+    render_kpi_card("ROAS", curr_roas, prev_roas, fmt_type="multiplier", higher_is_better=True, currency_symbol=currency_sym, comparison_label=comp_lbl, incomplete=is_inc)
+
+
+st.divider()
+
+# ============================================================
+# CHARTS
+# ============================================================
+
+st.subheader("📈 Performance Trends & Lead Volume")
+
+ch1, ch2, ch3 = st.columns([1.3, 1.1, 1.1])
+
+with ch1:
+    daily_li = curr_df.groupby("date").agg(spend=("spend", "sum"), revenue=("conversion_value", "sum")).reset_index()
+    fig_daily = px.line(
+        daily_li,
+        x="date",
+        y=["spend", "revenue"],
+        title="LinkedIn Daily Spend vs Attributed Revenue",
+        color_discrete_map={"spend": "#FF4D5A", "revenue": "#22C55E"}
+    )
+    apply_chart_theme(fig_daily, title="LinkedIn Daily Spend vs Attributed Revenue", height=320)
+    st.plotly_chart(fig_daily, use_container_width=True)
+
+with ch2:
+    camp_summary = curr_df.groupby("campaign_name").agg(spend=("spend", "sum"), leads=("leads", "sum"), conversions=("conversions", "sum"), revenue=("conversion_value", "sum")).reset_index()
+    fig_li_pie = px.pie(
+        camp_summary,
+        values="spend",
+        names="campaign_name",
+        title="Spend Share by Campaign",
+        hole=0.45,
+        color_discrete_sequence=["#38BDF8", "#FF4D5A", "#10B981", "#F59E0B", "#818CF8"]
+    )
+    apply_chart_theme(fig_li_pie, title="Spend Share by Campaign", height=320)
+    st.plotly_chart(fig_li_pie, use_container_width=True)
+
+with ch3:
+    fig_leads = px.bar(
+        camp_summary,
+        x="campaign_name",
+        y="leads",
+        title="Qualified Leads by Campaign",
+        text_auto=".2s",
+        color="leads",
+        color_continuous_scale=["#4F8CFF", "#22C55E"]
+    )
+    apply_chart_theme(fig_leads, title="Qualified Leads by Campaign", height=320)
+    st.plotly_chart(fig_leads, use_container_width=True)
+
+st.divider()
+
+# ============================================================
+# DETAILED TABLE
+# ============================================================
+
+st.subheader("📋 Campaign Detailed Table")
+
+st.dataframe(
+    camp_summary.style.format({
+        "spend": f"{currency_sym}{{:,.2f}}",
+        "leads": "{:,.0f}",
+        "conversions": "{:,.0f}",
+        "revenue": f"{currency_sym}{{:,.2f}}"
+    }),
+    use_container_width=True,
+    hide_index=True
+)
+
+st.divider()
+
+# ============================================================
+# AI ASSISTANT
+# ============================================================
+
+render_ai_assistant("LinkedIn Ads", active_filters=filters)

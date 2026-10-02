@@ -1,0 +1,7 @@
+file,rows
+campaign_budget.csv,30
+google_ads/daily_campaign_performance.csv,1438
+meta/daily_campaign_performance.csv,1529
+linkedin/daily_campaign_performance.csv,1520
+ga4/ga4_daily_channel.csv,1086
+gsc/gsc_daily_queries.csv,3620

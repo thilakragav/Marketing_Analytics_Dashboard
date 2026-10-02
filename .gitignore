@@ -1,0 +1,53 @@
+# Virtual environment
+venv/
+.venv/
+
+# Python cache
+__pycache__/
+*.py[cod]
+*.pyo
+
+# Environment variables
+.env
+.env.*
+!.env.example
+
+# Streamlit secrets
+.streamlit/secrets.toml
+
+# Logs
+*.log
+logs/
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# IDE
+.vscode/
+.idea/
+
+# Jupyter
+.ipynb_checkpoints/
+
+# Temporary files
+*.tmp
+*.temp
+
+# Local database / data files
+*.db
+*.sqlite
+*.sqlite3
+
+# Generated/cache data
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+
+# Streamlit cache
+.streamlit/cache/
+
+# Build artifacts
+build/
+dist/
+*.egg-info/

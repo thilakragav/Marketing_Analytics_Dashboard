@@ -1,0 +1,19 @@
+{
+  "period": "2026-01-01 to 2026-06-30",
+  "currency": "USD",
+  "campaigns": 30,
+  "platforms": [
+    "Google Ads",
+    "Meta Ads",
+    "LinkedIn Ads"
+  ],
+  "sources": {
+    "GA4": "Sample daily channel export",
+    "Google Ads": "Synthetic/sample daily campaign export",
+    "Meta Ads": "Synthetic/sample daily campaign export",
+    "LinkedIn Ads": "Synthetic/sample daily campaign export",
+    "Google Search Console": "Sample daily query export",
+    "Campaign Budget": "Synthetic budget CSV"
+  },
+  "note": "PoC data. Not audited business data. Replace sample sources with live credentials/feeds where available."
+}
