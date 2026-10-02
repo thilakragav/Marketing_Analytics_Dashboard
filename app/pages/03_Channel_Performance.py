@@ -11,6 +11,7 @@ from app.components.kpi_card import render_kpi_card
 from app.components.filter_bar import render_filter_bar
 from app.components.ai_assistant import render_ai_assistant
 from app.components.charts import apply_chart_theme
+from app.utils.currency import get_currency_symbol, convert_currency
 
 # ============================================================
 # PAGE CONFIG
@@ -141,7 +142,7 @@ prev_roas = (prev_rev / prev_spend) if prev_spend > 0 else 0.0
 curr_roi = ((curr_rev - curr_spend) / curr_spend * 100) if curr_spend > 0 else 0.0
 prev_roi = ((prev_rev - prev_spend) / prev_spend * 100) if prev_spend > 0 else 0.0
 
-currency_sym = st.session_state.get("currency_symbol", "$")
+currency_sym = get_currency_symbol()
 comp_lbl = filters["comp_label"]
 is_inc = filters["is_incomplete"]
 
@@ -195,8 +196,14 @@ ch_summary["roi"] = ((ch_summary["revenue"] - ch_summary["spend"]) / ch_summary[
 
 st.subheader("📋 Channel Breakdown Matrix")
 
+ch_summary_table = ch_summary.copy()
+ch_summary_table["spend"] = convert_currency(ch_summary_table["spend"])
+ch_summary_table["revenue"] = convert_currency(ch_summary_table["revenue"])
+ch_summary_table["cpc"] = convert_currency(ch_summary_table["cpc"])
+ch_summary_table["cpa"] = convert_currency(ch_summary_table["cpa"])
+
 st.dataframe(
-    ch_summary.style.format({
+    ch_summary_table.style.format({
         "spend": f"{currency_sym}{{:,.2f}}",
         "revenue": f"{currency_sym}{{:,.2f}}",
         "impressions": "{:,.0f}",
@@ -224,44 +231,52 @@ st.subheader("📊 Comparative Channel Visualizations")
 c_row1_1, c_row1_2 = st.columns(2)
 
 with c_row1_1:
+    ch_summary_spend = ch_summary.copy()
+    ch_summary_spend["spend"] = convert_currency(ch_summary_spend["spend"])
     fig_spend = px.bar(
-        ch_summary,
+        ch_summary_spend,
         x="platform",
         y="spend",
-        title="Spend by Channel",
+        title=f"Spend by Channel ({currency_sym})",
         text_auto=".2s",
         color="platform",
-        color_discrete_sequence=["#FF4D5A", "#4F8CFF", "#22C55E"]
+        color_discrete_sequence=["#FF4D5A", "#4F8CFF", "#22C55E"],
+        labels={"spend": f"Spend ({currency_sym})"}
     )
-    apply_chart_theme(fig_spend, title="Spend by Channel", height=300)
+    fig_spend.update_layout(yaxis_tickprefix=currency_sym)
+    apply_chart_theme(fig_spend, title=f"Spend by Channel ({currency_sym})", height=300)
     st.plotly_chart(fig_spend, use_container_width=True)
 
 with c_row1_2:
     fig_pie_spend = px.pie(
-        ch_summary,
+        ch_summary_spend,
         values="spend",
         names="platform",
-        title="Channel Share of Total Spend",
+        title=f"Channel Share of Total Spend ({currency_sym})",
         hole=0.45,
         color="platform",
         color_discrete_sequence=["#38BDF8", "#FF4D5A", "#10B981"]
     )
-    apply_chart_theme(fig_pie_spend, title="Channel Share of Total Spend", height=300)
+    apply_chart_theme(fig_pie_spend, title=f"Channel Share of Total Spend ({currency_sym})", height=300)
     st.plotly_chart(fig_pie_spend, use_container_width=True)
 
 c_row2_1, c_row2_2 = st.columns(2)
 
 with c_row2_1:
+    ch_summary_rev = ch_summary.copy()
+    ch_summary_rev["revenue"] = convert_currency(ch_summary_rev["revenue"])
     fig_rev = px.bar(
-        ch_summary,
+        ch_summary_rev,
         x="platform",
         y="revenue",
-        title="Revenue by Channel",
+        title=f"Revenue by Channel ({currency_sym})",
         text_auto=".2s",
         color="platform",
-        color_discrete_sequence=["#FF4D5A", "#4F8CFF", "#22C55E"]
+        color_discrete_sequence=["#FF4D5A", "#4F8CFF", "#22C55E"],
+        labels={"revenue": f"Revenue ({currency_sym})"}
     )
-    apply_chart_theme(fig_rev, title="Revenue by Channel", height=300)
+    fig_rev.update_layout(yaxis_tickprefix=currency_sym)
+    apply_chart_theme(fig_rev, title=f"Revenue by Channel ({currency_sym})", height=300)
     st.plotly_chart(fig_rev, use_container_width=True)
 
 with c_row2_2:

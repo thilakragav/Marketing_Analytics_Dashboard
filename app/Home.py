@@ -13,6 +13,8 @@ from app.components.ai_assistant import render_ai_assistant
 
 from app.components.charts import apply_chart_theme
 from app.components.badges import render_status_badge
+from app.utils.currency import get_currency_symbol, convert_currency, format_currency
+from app.services.geo_service import load_geo_sales_data, build_world_choropleth_map
 
 # ============================================================
 # PAGE CONFIG
@@ -167,7 +169,7 @@ prev_clicks = prev_df["clicks"].sum() if not prev_df.empty else 0.0
 prev_impr = prev_df["impressions"].sum() if not prev_df.empty else 0.0
 prev_ctr = (prev_clicks / prev_impr * 100) if prev_impr > 0 else 0.0
 
-currency_sym = st.session_state.get("currency_symbol", "$")
+currency_sym = get_currency_symbol()
 comp_lbl = filters["comp_label"]
 is_inc = filters["is_incomplete"]
 
@@ -307,27 +309,34 @@ with ch_col1:
         .agg(spend=("spend", "sum"), revenue=("conversion_value", "sum"))
         .reset_index()
     )
+    daily_trend_disp = daily_trend.copy()
+    daily_trend_disp["spend"] = convert_currency(daily_trend_disp["spend"])
+    daily_trend_disp["revenue"] = convert_currency(daily_trend_disp["revenue"])
     fig_daily = px.line(
-        daily_trend,
+        daily_trend_disp,
         x="date",
         y=["spend", "revenue"],
-        title="Daily Spend vs Attributed Revenue",
-        color_discrete_map={"spend": "#FF4D5A", "revenue": "#22C55E"}
+        title=f"Daily Spend vs Attributed Revenue ({currency_sym})",
+        color_discrete_map={"spend": "#FF4D5A", "revenue": "#22C55E"},
+        labels={"value": f"Amount ({currency_sym})", "variable": "Metric"}
     )
-    apply_chart_theme(fig_daily, title="Daily Spend vs Attributed Revenue", height=320)
+    fig_daily.update_layout(yaxis_tickprefix=currency_sym)
+    apply_chart_theme(fig_daily, title=f"Daily Spend vs Attributed Revenue ({currency_sym})", height=320)
     st.plotly_chart(fig_daily, use_container_width=True)
 
 with ch_col2:
+    channel_summary_pie = channel_summary.copy()
+    channel_summary_pie["spend"] = convert_currency(channel_summary_pie["spend"])
     fig_pie = px.pie(
-        channel_summary,
+        channel_summary_pie,
         values="spend",
         names="platform",
-        title="Spend Share by Channel",
+        title=f"Spend Share by Channel ({currency_sym})",
         hole=0.45,
         color="platform",
         color_discrete_sequence=["#38BDF8", "#FF4D5A", "#10B981"]
     )
-    apply_chart_theme(fig_pie, title="Spend Share by Channel", height=320)
+    apply_chart_theme(fig_pie, title=f"Spend Share by Channel ({currency_sym})", height=320)
     st.plotly_chart(fig_pie, use_container_width=True)
 
 with ch_col3:
@@ -360,8 +369,12 @@ with br_col1:
         """,
         unsafe_allow_html=True
     )
+    channel_summary_disp = channel_summary.copy()
+    channel_summary_disp["spend"] = convert_currency(channel_summary_disp["spend"])
+    channel_summary_disp["revenue"] = convert_currency(channel_summary_disp["revenue"])
+    channel_summary_disp["cpa"] = convert_currency(channel_summary_disp["cpa"])
     st.dataframe(
-        channel_summary.style.format({
+        channel_summary_disp.style.format({
             "spend": f"{currency_sym}{{:,.2f}}",
             "revenue": f"{currency_sym}{{:,.2f}}",
             "impressions": "{:,.0f}",
@@ -391,7 +404,9 @@ with br_col2:
     )
     best_roas_row = channel_summary.sort_values("roas", ascending=False).iloc[0] if not channel_summary.empty else None
     top_rev_row = channel_summary.sort_values("revenue", ascending=False).iloc[0] if not channel_summary.empty else None
-    
+    best_roas_rev_disp = format_currency(best_roas_row['revenue'] if best_roas_row is not None else 0, decimals=0)
+    top_rev_disp = format_currency(top_rev_row['revenue'] if top_rev_row is not None else 0, decimals=0)
+
     with st.container(border=True):
         st.markdown(
             f"""
@@ -400,12 +415,12 @@ with br_col2:
                     <strong style="color: #4F8CFF;">🎯 Top Efficiency Channel:</strong><br/>
                     <span style="color: #94A3B8;">{best_roas_row['platform'] if best_roas_row is not None else 'N/A'} delivers </span>
                     <strong style="color: #22C55E;">{best_roas_row['roas'] if best_roas_row is not None else 0:.2f}x ROAS</strong>
-                    <span style="color: #94A3B8;"> with {currency_sym}{best_roas_row['revenue']:,.0f} revenue.</span>
+                    <span style="color: #94A3B8;"> with {best_roas_rev_disp} revenue.</span>
                 </div>
                 <div style="margin-bottom: 10px;">
                     <strong style="color: #4F8CFF;">💰 Primary Revenue Driver:</strong><br/>
                     <span style="color: #94A3B8;">{top_rev_row['platform'] if top_rev_row is not None else 'N/A'} generates </span>
-                    <strong style="color: #F8FAFC;">{currency_sym}{top_rev_row['revenue']:,.0f}</strong>
+                    <strong style="color: #F8FAFC;">{top_rev_disp}</strong>
                     <span style="color: #94A3B8;"> ({((top_rev_row['revenue'] / curr_rev) * 100) if curr_rev > 0 else 0:.1f}% of portfolio).</span>
                 </div>
                 <div>
@@ -419,6 +434,39 @@ with br_col2:
             """,
             unsafe_allow_html=True
         )
+
+# ============================================================
+# GLOBAL GEOGRAPHIC SALES PREVIEW
+# ============================================================
+
+st.markdown(
+    """
+    <div class="section-header-enhanced">
+        <span class="section-icon">🗺️</span>
+        <span class="section-title">Global Sales & Market Reach</span>
+        <span class="section-line"></span>
+        <span class="section-badge">Worldwide</span>
+    </div>
+    """,
+    unsafe_allow_html=True
+)
+
+geo_df_home = load_geo_sales_data(engine=engine)
+fig_geo_home = build_world_choropleth_map(geo_df_home, metric="sales_revenue", projection="natural earth", height=400)
+st.plotly_chart(fig_geo_home, use_container_width=True)
+
+h_gcol1, h_gcol2 = st.columns([3, 1])
+with h_gcol1:
+    top_c = geo_df_home.iloc[0]
+    st.markdown(
+        f"<div style='font-size: 0.82rem; color: #94A3B8; padding-top: 4px;'>"
+        f"Active in <b>32 countries</b> across 5 continental regions. Global sales anchor: <b>{top_c['flag']} {top_c['country_name']}</b> "
+        f"({top_c['market_share_pct']}% of global sales, {currency_sym}{convert_currency(top_c['sales_revenue_usd']):,.2f})."
+        f"</div>",
+        unsafe_allow_html=True
+    )
+with h_gcol2:
+    st.page_link("pages/14_Global_Sales_Map.py", label="Open Global Sales Map 🗺️", icon="🗺️")
 
 # ============================================================
 # DATA SOURCE INTEGRATION STATUS

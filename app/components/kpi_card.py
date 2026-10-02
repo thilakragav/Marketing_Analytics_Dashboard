@@ -2,9 +2,13 @@ import streamlit as st
 import pandas as pd
 import random
 from app.components.kpi_dictionary import render_kpi_popover
+from app.utils.currency import get_currency_symbol, convert_currency
 
-def format_val(value: float, fmt_type: str = "number", currency_symbol: str = "₹") -> str:
-    """Format numeric values into standard enterprise representations (₹, K, M, %, x)."""
+def format_val(value: float, fmt_type: str = "number", currency_symbol: str = None) -> str:
+    """Format numeric values into standard enterprise representations ($, ₹, €, £, K, M, %, x)."""
+    if currency_symbol is None:
+        currency_symbol = get_currency_symbol()
+
     if value is None or pd.isna(value):
         return "N/A"
 
@@ -76,9 +80,10 @@ def render_kpi_card(
     previous_val: float = None,
     fmt_type: str = "currency",
     higher_is_better: bool = True,
-    currency_symbol: str = "₹",
+    currency_symbol: str = None,
     comparison_label: str = "vs previous period",
-    incomplete: bool = False
+    incomplete: bool = False,
+    convert_monetary: bool = True
 ):
     """
     Renders an enterprise KPI card with:
@@ -89,10 +94,20 @@ def render_kpi_card(
     - Trend arrow & change percentage
     - Previous value comparison
     """
+    if currency_symbol is None:
+        currency_symbol = get_currency_symbol()
+
     if current_val is None:
         current_val = 0.0
 
-    curr_str = format_val(current_val, fmt_type, currency_symbol)
+    if convert_monetary and fmt_type in ("currency", "currency_precise"):
+        curr_val_disp = convert_currency(current_val)
+        prev_val_disp = convert_currency(previous_val) if previous_val is not None else None
+    else:
+        curr_val_disp = current_val
+        prev_val_disp = previous_val
+
+    curr_str = format_val(curr_val_disp, fmt_type, currency_symbol)
     inc_badge = " <span style='color: #FBBF24; font-size: 0.7rem; text-shadow: 0 0 6px rgba(245, 158, 11, 0.5);'>● Partial</span>" if incomplete else ""
 
     with st.container(border=True):
@@ -129,7 +144,7 @@ def render_kpi_card(
             return
 
         abs_diff = current_val - previous_val
-        prev_str = format_val(previous_val, fmt_type, currency_symbol)
+        prev_str = format_val(prev_val_disp, fmt_type, currency_symbol)
 
         if previous_val == 0:
             trend_html = "<span style='color: #94A3B8; font-weight: 600; font-size: 0.78rem;'>Insufficient Data</span>"

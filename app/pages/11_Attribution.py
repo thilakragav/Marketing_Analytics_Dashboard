@@ -7,6 +7,7 @@ from app.components.theme import apply_enterprise_theme
 from app.components.sidebar import render_global_sidebar
 from app.components.header import render_global_header
 from app.components.charts import apply_chart_theme
+from app.utils.currency import get_currency_symbol, format_currency, convert_currency
 
 st.set_page_config(
     page_title="Marketing Attribution Intelligence",
@@ -101,6 +102,8 @@ st.divider()
 # Attribution Summary Cards
 st.subheader("📊 Attribution Summary (Last Click Basis)")
 
+currency_sym = get_currency_symbol()
+
 c1, c2, c3, c4 = st.columns(4)
 with c1:
     st.metric("Attribution Model", "Last Click", delta="Default System Model")
@@ -109,7 +112,7 @@ with c2:
 with c3:
     st.metric("Total Attributed Conversions", f"{total_conversions:,}", delta="Verified Conversions")
 with c4:
-    st.metric("Total Attributed Revenue", f"${total_revenue:,.2f}", delta="From Paid Media")
+    st.metric("Total Attributed Revenue", format_currency(total_revenue), delta="From Paid Media")
 
 st.divider()
 
@@ -138,16 +141,18 @@ if not channel_data.empty:
 
     ch1, ch2, ch3 = st.columns([1.1, 1.1, 1.2])
     with ch1:
+        channel_data_disp = channel_data.copy()
+        channel_data_disp["revenue"] = convert_currency(channel_data_disp["revenue"])
         fig_rev = px.pie(
-            channel_data,
+            channel_data_disp,
             names="platform",
             values="revenue",
-            title="Attributed Revenue Share by Channel",
+            title=f"Attributed Revenue Share by Channel ({currency_sym})",
             hole=0.45,
             color="platform",
             color_discrete_sequence=["#38BDF8", "#FF4D5A", "#10B981"]
         )
-        apply_chart_theme(fig_rev, title="Attributed Revenue Share by Channel", height=320)
+        apply_chart_theme(fig_rev, title=f"Attributed Revenue Share by Channel ({currency_sym})", height=320)
         st.plotly_chart(fig_rev, use_container_width=True)
 
     with ch2:

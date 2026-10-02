@@ -91,3 +91,44 @@ def apply_chart_theme(fig, title: str = "", height: int = 340):
             )
 
     return fig
+
+
+def apply_geo_map_theme(fig, title: str = "", height: int = 540):
+    """
+    Applies unified enterprise dark luxury theme for choropleth and geographic maps:
+    - Deep obsidian ocean & lake background
+    - High-contrast country outlines in glowing cyber cyan
+    - Antialiased typography and glassmorphic hovercards
+    """
+    apply_chart_theme(fig, title=title, height=height)
+    fig.update_geos(
+        showframe=False,
+        showcoastlines=True,
+        coastlinecolor="rgba(56, 189, 248, 0.35)",
+        coastlinewidth=1,
+        showocean=True,
+        oceancolor="rgba(6, 11, 21, 0.95)",
+        showlakes=True,
+        lakecolor="rgba(8, 14, 26, 0.95)",
+        showland=True,
+        landcolor="rgba(15, 23, 42, 0.75)",
+        showcountries=True,
+        countrycolor="rgba(56, 189, 248, 0.25)",
+        countrywidth=0.8,
+        bgcolor="rgba(0, 0, 0, 0)"
+    )
+    fig.update_layout(
+        margin=dict(l=0, r=0, t=50, b=10),
+        coloraxis_colorbar=dict(
+            title=dict(font=dict(color="#94A3B8", size=11)),
+            tickfont=dict(color="#94A3B8", size=10),
+            thickness=14,
+            len=0.75,
+            x=0.98,
+            bgcolor="rgba(10, 16, 28, 0.6)",
+            outlinecolor="rgba(56, 189, 248, 0.2)",
+            outlinewidth=1
+        )
+    )
+    return fig
+

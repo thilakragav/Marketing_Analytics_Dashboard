@@ -7,6 +7,7 @@ from app.components.theme import apply_enterprise_theme
 from app.components.sidebar import render_global_sidebar
 from app.components.header import render_global_header
 from app.components.charts import apply_chart_theme
+from app.utils.currency import get_currency_symbol, format_currency, convert_currency
 
 st.set_page_config(
     page_title="Marketing Data Reconciliation",
@@ -113,9 +114,9 @@ for _, row in merged_pm_cp.iterrows():
     reconciliation_rows.append({
         "Metric": "Spend",
         "Source": p,
-        "Platform Value": f"${row['pm_spend']:,.2f}",
-        "System of Record Value": f"${row['cp_spend']:,.2f}",
-        "Absolute Variance": f"${abs_v_spend:,.2f}",
+        "Platform Value": format_currency(row['pm_spend']),
+        "System of Record Value": format_currency(row['cp_spend']),
+        "Absolute Variance": format_currency(abs_v_spend),
         "Variance %": f"{pct_v_spend:.2f}%",
         "Tolerance": f"{spend_tol:.1f}%",
         "Status": status_spend,
@@ -149,9 +150,9 @@ for _, row in merged_pm_cp.iterrows():
     reconciliation_rows.append({
         "Metric": "Revenue",
         "Source": p,
-        "Platform Value": f"${row['pm_rev']:,.2f}",
-        "System of Record Value": f"${row['cp_rev']:,.2f}",
-        "Absolute Variance": f"${abs_v_rev:,.2f}",
+        "Platform Value": format_currency(row['pm_rev']),
+        "System of Record Value": format_currency(row['cp_rev']),
+        "Absolute Variance": format_currency(abs_v_rev),
         "Variance %": f"{pct_v_rev:.2f}%",
         "Tolerance": f"{rev_tol:.1f}%",
         "Status": status_rev,
@@ -168,9 +169,9 @@ ga4_rev_pct = (ga4_rev_diff / total_pm_rev * 100) if total_pm_rev > 0 else 0.0
 reconciliation_rows.append({
     "Metric": "Revenue",
     "Source": "GA4 vs Paid Media",
-    "Platform Value": f"${total_pm_rev:,.2f}",
-    "System of Record Value": f"${total_ga4_rev:,.2f}",
-    "Absolute Variance": f"${ga4_rev_diff:,.2f}",
+    "Platform Value": format_currency(total_pm_rev),
+    "System of Record Value": format_currency(total_ga4_rev),
+    "Absolute Variance": format_currency(ga4_rev_diff),
     "Variance %": f"{ga4_rev_pct:.2f}%",
     "Tolerance": f"{rev_tol:.1f}%",
     "Status": "REVIEW",

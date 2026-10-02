@@ -11,6 +11,7 @@ from app.components.kpi_card import render_kpi_card
 from app.components.filter_bar import render_filter_bar
 from app.components.ai_assistant import render_ai_assistant
 from app.components.charts import apply_chart_theme
+from app.utils.currency import get_currency_symbol, convert_currency
 
 # ==================================================
 # PAGE CONFIG
@@ -141,7 +142,7 @@ prev_conv = prev_df["conversions"].sum() if not prev_df.empty else 0.0
 curr_rev = curr_df["revenue"].sum()
 prev_rev = prev_df["revenue"].sum() if not prev_df.empty else 0.0
 
-currency_sym = st.session_state.get("currency_symbol", "$")
+currency_sym = get_currency_symbol()
 comp_lbl = filters["comp_label"]
 is_inc = filters["is_incomplete"]
 
@@ -219,8 +220,11 @@ st.divider()
 
 st.subheader("📋 Acquisition Channel Summary Table")
 
+ch_breakdown_table = ch_breakdown.copy()
+ch_breakdown_table["revenue"] = convert_currency(ch_breakdown_table["revenue"])
+
 st.dataframe(
-    ch_breakdown.style.format({
+    ch_breakdown_table.style.format({
         "sessions": "{:,.0f}",
         "conversions": "{:,.0f}",
         "revenue": f"{currency_sym}{{:,.2f}}"

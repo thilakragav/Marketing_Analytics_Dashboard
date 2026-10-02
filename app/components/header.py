@@ -1,6 +1,7 @@
 import streamlit as st
 from datetime import datetime
 from app.services.data_sources.manager import get_data_source_manager
+from app.utils.currency import get_selected_currency, get_currency_symbol
 
 def render_global_header(
     title: str,
@@ -60,12 +61,16 @@ def render_global_header(
             unsafe_allow_html=True
         )
 
+    curr_code = get_selected_currency()
+    curr_sym = get_currency_symbol()
+
     with col2:
         st.markdown(
             f"""
             <div style="text-align: right; padding-top: 6px;">
                 <div class="header-status-badge">
                     <span class="live-light-dot"></span>LIVE INTEGRITY <span style="font-size: 0.72rem; opacity: 0.85;">⚡</span>
+                    <span style="margin-left: 8px; border-left: 1px solid rgba(56,189,248,0.3); padding-left: 8px; color: #38BDF8; font-weight: 700;">{curr_code} ({curr_sym})</span>
                 </div>
                 <div style="display: flex; justify-content: flex-end; gap: 12px; margin-top: 6px;">
                     <div style="font-size: 0.7rem; color: #64748B; font-weight: 500;">

@@ -6,6 +6,7 @@ from app.components.sidebar import render_global_sidebar
 from app.components.header import render_global_header
 from app.components.charts import apply_chart_theme
 from app.components.kpi_dictionary import get_dictionary_dataframe, KPI_DEFINITIONS
+from app.utils.currency import get_selected_currency, get_currency_symbol
 
 st.set_page_config(
     page_title="Marketing KPI Dictionary",
@@ -21,6 +22,10 @@ render_global_header(
     description="Standardized enterprise business definitions, mathematical formulas, source tables, and attribution methodologies",
     icon="📖"
 )
+
+active_code = get_selected_currency()
+active_sym = get_currency_symbol()
+st.caption(f"🌐 Active Global Reporting Currency: **{active_code} ({active_sym})** (configured in Settings)")
 
 # Search Input
 search_query = st.text_input("🔍 Search KPI...", placeholder="Type to filter by metric name, source, or formula (e.g. ROAS, CPA, Spend, Revenue)...")

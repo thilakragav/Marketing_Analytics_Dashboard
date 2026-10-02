@@ -11,6 +11,7 @@ from app.components.kpi_card import render_kpi_card
 from app.components.filter_bar import render_filter_bar
 from app.components.ai_assistant import render_ai_assistant
 from app.components.charts import apply_chart_theme
+from app.utils.currency import get_currency_symbol, convert_currency
 
 # ============================================================
 # PAGE CONFIG
@@ -155,7 +156,7 @@ prev_clicks = prev_df["clicks"].sum() if not prev_df.empty else 0.0
 prev_impr = prev_df["impressions"].sum() if not prev_df.empty else 0.0
 prev_ctr = (prev_clicks / prev_impr * 100) if prev_impr > 0 else 0.0
 
-currency_sym = st.session_state.get("currency_symbol", "$")
+currency_sym = get_currency_symbol()
 comp_lbl = filters["comp_label"]
 is_inc = filters["is_incomplete"]
 
@@ -190,28 +191,35 @@ ch1, ch2, ch3 = st.columns([1.3, 1.1, 1.1])
 
 with ch1:
     daily_gads = curr_df.groupby("date").agg(spend=("spend", "sum"), revenue=("conversion_value", "sum")).reset_index()
+    daily_gads_disp = daily_gads.copy()
+    daily_gads_disp["spend"] = convert_currency(daily_gads_disp["spend"])
+    daily_gads_disp["revenue"] = convert_currency(daily_gads_disp["revenue"])
     fig_daily = px.line(
-        daily_gads,
+        daily_gads_disp,
         x="date",
         y=["spend", "revenue"],
-        title="Google Ads Daily Spend vs Revenue",
-        color_discrete_map={"spend": "#FF4D5A", "revenue": "#22C55E"}
+        title=f"Google Ads Daily Spend vs Revenue ({currency_sym})",
+        color_discrete_map={"spend": "#FF4D5A", "revenue": "#22C55E"},
+        labels={"value": f"Amount ({currency_sym})", "variable": "Metric"}
     )
-    apply_chart_theme(fig_daily, title="Google Ads Daily Spend vs Revenue", height=320)
+    fig_daily.update_layout(yaxis_tickprefix=currency_sym)
+    apply_chart_theme(fig_daily, title=f"Google Ads Daily Spend vs Revenue ({currency_sym})", height=320)
     st.plotly_chart(fig_daily, use_container_width=True)
 
 with ch2:
     camp_summary = curr_df.groupby("campaign_name").agg(spend=("spend", "sum"), revenue=("conversion_value", "sum"), conversions=("conversions", "sum")).reset_index()
     camp_summary["roas"] = (camp_summary["revenue"] / camp_summary["spend"]).round(2)
+    camp_summary_pie = camp_summary.copy()
+    camp_summary_pie["spend"] = convert_currency(camp_summary_pie["spend"])
     fig_gads_pie = px.pie(
-        camp_summary,
+        camp_summary_pie,
         values="spend",
         names="campaign_name",
-        title="Spend Share by Campaign",
+        title=f"Spend Share by Campaign ({currency_sym})",
         hole=0.45,
         color_discrete_sequence=["#38BDF8", "#FF4D5A", "#10B981", "#F59E0B", "#818CF8"]
     )
-    apply_chart_theme(fig_gads_pie, title="Spend Share by Campaign", height=320)
+    apply_chart_theme(fig_gads_pie, title=f"Spend Share by Campaign ({currency_sym})", height=320)
     st.plotly_chart(fig_gads_pie, use_container_width=True)
 
 with ch3:
@@ -235,8 +243,12 @@ st.divider()
 
 st.subheader("📋 Campaign Detailed Table")
 
+camp_summary_table = camp_summary.copy()
+camp_summary_table["spend"] = convert_currency(camp_summary_table["spend"])
+camp_summary_table["revenue"] = convert_currency(camp_summary_table["revenue"])
+
 st.dataframe(
-    camp_summary.style.format({
+    camp_summary_table.style.format({
         "spend": f"{currency_sym}{{:,.2f}}",
         "revenue": f"{currency_sym}{{:,.2f}}",
         "conversions": "{:,.0f}",

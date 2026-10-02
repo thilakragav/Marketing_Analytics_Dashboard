@@ -11,6 +11,7 @@ from app.components.kpi_card import render_kpi_card
 from app.components.filter_bar import render_filter_bar
 from app.components.ai_assistant import render_ai_assistant
 from app.components.charts import apply_chart_theme
+from app.utils.currency import get_currency_symbol
 
 # ==================================================
 # PAGE CONFIG
@@ -138,7 +139,7 @@ prev_ctr = (prev_clicks / prev_impr * 100) if prev_impr > 0 else 0.0
 curr_pos = curr_df["average_position"].mean()
 prev_pos = prev_df["average_position"].mean() if not prev_df.empty else 0.0
 
-currency_sym = st.session_state.get("currency_symbol", "$")
+currency_sym = get_currency_symbol()
 comp_lbl = filters["comp_label"]
 is_inc = filters["is_incomplete"]
 

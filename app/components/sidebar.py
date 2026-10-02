@@ -1,5 +1,6 @@
 import streamlit as st
 from datetime import datetime
+from app.utils.currency import get_selected_currency, get_currency_symbol
 
 def render_global_sidebar():
     """Renders the fixed enterprise marketing intelligence navigation sidebar with animated brand card, navigation, and system health footer."""
@@ -17,7 +18,7 @@ def render_global_sidebar():
                     <div style="flex:1; height:3px; border-radius:2px; background: linear-gradient(90deg, #38BDF8, #38BDF8); box-shadow: 0 0 6px rgba(56, 189, 248, 0.5);"></div>
                     <div style="flex:1; height:3px; border-radius:2px; background: linear-gradient(90deg, #A855F7, #A855F7); box-shadow: 0 0 6px rgba(168, 85, 247, 0.5);"></div>
                     <div style="flex:1; height:3px; border-radius:2px; background: linear-gradient(90deg, #FF4D5A, #FF4D5A); box-shadow: 0 0 6px rgba(255, 77, 90, 0.5);"></div>
-                    <div style="flex:1; height:3px; border-radius:2px; background: linear-gradient(90deg, #10B981, #10B981); box-shadow: 0 0 6px rgba(16, 185, 129, 0.5);"></div>
+                    <div style="flex:1; height:3px; border-radius:2px; background: linear-gradient(90deg, #10B981, #10B981); box-shadow: 0 0 6px rgba(168, 185, 129, 0.5);"></div>
                 </div>
             </div>
             """,
@@ -40,18 +41,25 @@ def render_global_sidebar():
         st.page_link("pages/08_SEO_Performance.py", label="SEO Performance", icon="🔍")
 
         st.markdown('<div class="sidebar-section-header">INTELLIGENCE & AUDIT</div>', unsafe_allow_html=True)
+        st.page_link("pages/14_Global_Sales_Map.py", label="Global Sales Map", icon="🗺️")
         st.page_link("pages/09_Data_Sources.py", label="Data Sources", icon="🔄")
         st.page_link("pages/10_Reconciliation.py", label="Reconciliation", icon="🧮")
         st.page_link("pages/11_Attribution.py", label="Attribution", icon="🎯")
         st.page_link("pages/12_KPI_Dictionary.py", label="KPI Dictionary", icon="📖")
         st.page_link("pages/13_Settings.py", label="Settings", icon="⚙️")
 
-        # ── System Health Footer ──
+        # ── System Health & Currency Footer ──
         now_str = datetime.now().strftime("%H:%M:%S")
+        curr_code = get_selected_currency()
+        curr_sym = get_currency_symbol()
         st.markdown(
             f"""
-            <div style="margin-top: 28px; padding: 14px; background: rgba(10, 16, 28, 0.8); border: 1px solid rgba(56, 189, 248, 0.2); border-radius: 12px; font-size: 0.72rem; color: #64748B;">
+            <div style="margin-top: 24px; padding: 12px; background: rgba(10, 16, 28, 0.85); border: 1px solid rgba(56, 189, 248, 0.25); border-radius: 12px; font-size: 0.72rem; color: #64748B;">
                 <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 6px;">
+                    <span style="font-weight: 700; color: #94A3B8; letter-spacing: 0.05em;">CURRENCY</span>
+                    <span style="color: #38BDF8; font-weight: 800; font-size: 0.75rem;">{curr_code} ({curr_sym})</span>
+                </div>
+                <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px;">
                     <span style="font-weight: 700; color: #94A3B8; letter-spacing: 0.05em;">SYSTEM HEALTH</span>
                     <span style="color: #34D399; font-weight: 700; font-size: 0.68rem;">● ALL ONLINE</span>
                 </div>

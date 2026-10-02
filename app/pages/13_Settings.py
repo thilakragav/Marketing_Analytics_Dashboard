@@ -7,6 +7,15 @@ from app.components.sidebar import render_global_sidebar
 from app.components.header import render_global_header
 from app.components.charts import apply_chart_theme
 
+from app.utils.currency import (
+    CURRENCY_CONFIG,
+    CURRENCY_OPTIONS,
+    get_selected_currency,
+    get_currency_symbol,
+    get_currency_rate,
+    set_selected_currency,
+)
+
 st.set_page_config(
     page_title="Platform Settings",
     page_icon="⚙️",
@@ -26,12 +35,34 @@ st.subheader("🌐 Localization & Currency Display")
 
 col1, col2 = st.columns(2)
 with col1:
-    currency = st.selectbox(
+    current_curr = get_selected_currency()
+    current_idx = 0
+    for idx, opt in enumerate(CURRENCY_OPTIONS):
+        if opt.startswith(current_curr):
+            current_idx = idx
+            break
+
+    def _on_currency_change():
+        chosen = st.session_state.get("global_currency_selector")
+        if chosen:
+            set_selected_currency(chosen)
+
+    selected_currency_label = st.selectbox(
         "Reporting Currency Symbol",
-        options=["USD ($)", "INR (₹)", "EUR (€)", "GBP (£)"],
-        index=0
+        options=CURRENCY_OPTIONS,
+        index=current_idx,
+        key="global_currency_selector",
+        on_change=_on_currency_change
     )
-    st.session_state["currency_symbol"] = currency.split("(")[-1].replace(")", "").strip()
+    if selected_currency_label:
+        set_selected_currency(selected_currency_label)
+
+    active_sym = get_currency_symbol()
+    active_rate = get_currency_rate()
+    if current_curr == "USD":
+        st.caption("💵 Base Currency: **USD ($)** • 1 USD = $1.00 USD")
+    else:
+        st.caption(f"💱 Active Conversion: **1 USD = {active_sym}{active_rate:,.2f} {current_curr}** (Global rate)")
 
 with col2:
     timezone = st.selectbox(
